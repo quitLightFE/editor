@@ -94,19 +94,11 @@ export default function Home() {
       ]);
     }
 
-    function handleWindowError(error: ErrorEvent) {
-      if (event?.message?.includes("Cancelled") || event?.error?.message?.includes("Cancelled")) {
-        event?.preventDefault()
-      }
-    }
-
 
     window.addEventListener('message', handleMessage);
-    window.addEventListener('message', handleWindowError);
 
     return () => {
       window.removeEventListener('message', handleMessage);
-      window.removeEventListener('message', handleWindowError);
     };
   }, []);
 
