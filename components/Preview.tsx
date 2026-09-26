@@ -10,7 +10,6 @@ export default function Preview({ html, css, js }: PreviewProps) {
   const srcDoc = `
 <!DOCTYPE html>
 <html>
-
 <head>
   <meta charset="UTF-8">
 
@@ -20,11 +19,9 @@ export default function Preview({ html, css, js }: PreviewProps) {
 </head>
 
 <body>
-
   ${html}
 
   <script>
-
     function sendConsole(type, args) {
       window.parent.postMessage(
         {
@@ -36,17 +33,11 @@ export default function Preview({ html, css, js }: PreviewProps) {
       );
     }
 
-    const originalLog = console.log;
-    const originalWarn = console.warn;
-    const originalError = console.error;
-
     console.log = function(...args) {
       sendConsole(
         "log",
         args.map(String)
       );
-
-      originalLog(...args);
     };
 
     console.warn = function(...args) {
@@ -54,8 +45,6 @@ export default function Preview({ html, css, js }: PreviewProps) {
         "warn",
         args.map(String)
       );
-
-      originalWarn(...args);
     };
 
     console.error = function(...args) {
@@ -63,8 +52,6 @@ export default function Preview({ html, css, js }: PreviewProps) {
         "error",
         args.map(String)
       );
-
-      originalError(...args);
     };
 
     window.onerror = function(
@@ -76,33 +63,27 @@ export default function Preview({ html, css, js }: PreviewProps) {
     ) {
       sendConsole(
         "error",
-        [
-          String(message)
-        ]
+        [String(message)]
       );
     };
 
     try {
-
       ${js}
-
     } catch (error) {
-
       console.error(error);
-
     }
-
-  </script>
-
+  <\/script>
 </body>
+</html>
+`;
 
-</html>`;
   return (
     <iframe
+      key={srcDoc}
       title="Preview"
       srcDoc={srcDoc}
-      className="h-full w-full border-0 bg-white"
-      sandbox="allow-scripts"
+      className="h-[85vh] w-full border-0 bg-white"
+    // sandbox="allow-scripts"
     />
   );
 }

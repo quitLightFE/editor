@@ -17,6 +17,7 @@
     "emmet-monaco-es": "^5.7.0",
     "eslint": "8.49.0",
     "eslint-config-next": "13.5.1",
+    "jszip": "^3.10.2",
     "next": "13.5.1",
     "postcss": "8.4.30",
     "react": "18.2.0",

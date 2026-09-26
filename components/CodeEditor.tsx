@@ -9,16 +9,16 @@ type Props = {
   onChange: (value: string) => void;
 };
 
-let emmetInitialized = false;
+// let emmetInitialized = false;
 
 export default function CodeEditor({ language, value, onChange }: Props) {
   function handleBeforeMount(monaco: any) {
-    if (emmetInitialized) return;
+    if (monaco.__emmetInitialized) return;
 
     emmetHTML(monaco, ['html']);
     emmetCSS(monaco, ['css']);
 
-    emmetInitialized = true;
+    monaco.__emmetInitialized = true;
   }
 
   return (
@@ -32,11 +32,12 @@ export default function CodeEditor({ language, value, onChange }: Props) {
       options={{
         fontSize: 14,
 
+        automaticLayout: true,
+        fixedOverflowWidgets: true,
+
         minimap: {
           enabled: false,
         },
-
-        automaticLayout: true,
 
         wordWrap: 'on',
 
