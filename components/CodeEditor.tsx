@@ -1,22 +1,27 @@
-'use client';
+"use client";
 
-import Editor from '@monaco-editor/react';
-import { emmetHTML, emmetCSS } from 'emmet-monaco-es';
+import Editor from "@monaco-editor/react";
+import { emmetHTML, emmetCSS, emmetJSX } from "emmet-monaco-es";
 
 type Props = {
-  language: 'html' | 'css' | 'javascript';
+  language: "html" | "css" | "javascript";
   value: string;
   onChange: (value: string) => void;
+  onMount?: (editor: any) => void;
 };
 
-// let emmetInitialized = false;
-
-export default function CodeEditor({ language, value, onChange }: Props) {
+export default function CodeEditor({
+  language,
+  value,
+  onChange,
+  onMount,
+}: Props) {
   function handleBeforeMount(monaco: any) {
     if (monaco.__emmetInitialized) return;
 
-    emmetHTML(monaco, ['html']);
-    emmetCSS(monaco, ['css']);
+    emmetHTML(monaco, ["html"]);
+    emmetCSS(monaco, ["css"]);
+    emmetJSX(monaco, ["javascript", "typescript", "jsx", "tsx"]);
 
     monaco.__emmetInitialized = true;
   }
@@ -28,7 +33,8 @@ export default function CodeEditor({ language, value, onChange }: Props) {
       value={value}
       theme="vs-dark"
       beforeMount={handleBeforeMount}
-      onChange={(value: string | undefined) => onChange(value ?? '')}
+      onMount={onMount}
+      onChange={(value: string | undefined) => onChange(value ?? "")}
       options={{
         fontSize: 14,
 
@@ -39,13 +45,19 @@ export default function CodeEditor({ language, value, onChange }: Props) {
           enabled: false,
         },
 
-        wordWrap: 'on',
+        wordWrap: "on",
 
         tabSize: 2,
 
         padding: {
           top: 12,
         },
+
+        autoClosingBrackets: "always",
+        autoClosingOvertype: "always",
+        autoClosingComments: "always",
+        autoClosingQuotes: "always",
+        autoSurround: "languageDefined",
 
         suggestOnTriggerCharacters: true,
 

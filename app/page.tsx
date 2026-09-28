@@ -1,16 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import JSZip from 'jszip';
+import { useState, useEffect } from "react";
+import JSZip from "jszip";
 
-import CodeEditor from '@/components/CodeEditor';
-import Preview from '@/components/Preview';
-import Console from '../components/Console';
+import CodeEditor from "@/components/CodeEditor";
+import Preview from "@/components/Preview";
+import Console from "../components/Console";
+import * as Monaco from "@monaco-editor/react";
+import QuickKeys from "@/components/QuickKeys";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
 
-type FileName = 'html' | 'css' | 'js';
+type FileName = "html" | "css" | "js";
+
+type EditorType = Parameters<Monaco.OnMount>[0];
 
 type ConsoleMessage = {
-  type: 'log' | 'warn' | 'error';
+  type: "log" | "warn" | "error";
   args: string[];
 };
 
@@ -42,46 +47,61 @@ button {
 
 const fileInfo = {
   html: {
-    name: 'index.html',
-    language: 'html' as const,
+    name: "index.html",
+    language: "html" as const,
   },
   css: {
-    name: 'style.css',
-    language: 'css' as const,
+    name: "style.css",
+    language: "css" as const,
   },
   js: {
-    name: 'index.js',
-    language: 'javascript' as const,
+    name: "index.js",
+    language: "javascript" as const,
   },
 };
 
 export default function Home() {
-  const [activeFile, setActiveFile] = useState<FileName>('html');
+  const [activeFile, setActiveFile] = useState<FileName>("html");
 
   const [files, setFiles] = useState(initialCode);
-
-  // const [isRunning, setIsRunning] = useState(false);
 
   const [showConsole, setShowConsole] = useState(false);
 
   const [showPreview, setShowPreview] = useState(false);
 
-  const [consoleMessages, setConsoleMessages] = useState<
-    ConsoleMessage[]
-  >([]);
+  const [editor, setEditor] = useState<EditorType | null>(null);
+
+  useEffect(() => {
+    setFiles(
+      localStorage.getItem("files")
+        ? JSON.parse(localStorage.getItem("files") as string)
+        : initialCode,
+    );
+  }, []);
+
+  const [consoleMessages, setConsoleMessages] = useState<ConsoleMessage[]>([]);
+
+  const handleEditorDidMount = (editor: EditorType) => {
+    setEditor(editor);
+  };
+
+  const keyboardHeight = useKeyboardHeight();
 
   const currentFile = fileInfo[activeFile];
 
   function updateCode(value: string) {
-    setFiles((prev) => ({
-      ...prev,
-      [activeFile]: value,
-    }));
+    setFiles((prev) => {
+      const data = { ...prev, [activeFile]: value };
+
+      localStorage.setItem("files", JSON.stringify(data));
+
+      return data;
+    });
   }
 
   useEffect(() => {
     function handleMessage(event: MessageEvent) {
-      if (!event.data || event.data.source !== 'code-editor') {
+      if (!event.data || event.data.source !== "code-editor") {
         return;
       }
 
@@ -94,18 +114,12 @@ export default function Home() {
       ]);
     }
 
-
-    window.addEventListener('message', handleMessage);
+    window.addEventListener("message", handleMessage);
 
     return () => {
-      window.removeEventListener('message', handleMessage);
+      window.removeEventListener("message", handleMessage);
     };
   }, []);
-
-  function runCode() {
-    setConsoleMessages([]);
-    // setIsRunning(true);
-  }
 
   function createPreviewDocument() {
     return `
@@ -131,14 +145,11 @@ export default function Home() {
   }
 
   function openPreviewWindow() {
-    const blob = new Blob(
-      [createPreviewDocument()],
-      { type: 'text/html' }
-    );
+    const blob = new Blob([createPreviewDocument()], { type: "text/html" });
 
     const url = URL.createObjectURL(blob);
 
-    window.open(url, '_blank');
+    window.open(url, "_blank");
 
     setTimeout(() => {
       URL.revokeObjectURL(url);
@@ -148,20 +159,20 @@ export default function Home() {
   async function downloadCode() {
     const zip = new JSZip();
 
-    zip.file('index.html', files.html);
-    zip.file('style.css', files.css);
-    zip.file('index.js', files.js);
+    zip.file("index.html", files.html);
+    zip.file("style.css", files.css);
+    zip.file("index.js", files.js);
 
     const blob = await zip.generateAsync({
-      type: 'blob',
+      type: "blob",
     });
 
     const url = URL.createObjectURL(blob);
 
-    const link = document.createElement('a');
+    const link = document.createElement("a");
 
     link.href = url;
-    link.download = 'my-code.zip';
+    link.download = "my-code.zip";
 
     link.click();
 
@@ -170,36 +181,23 @@ export default function Home() {
 
   function sendToTeacher() {
     // Здесь позже подключим API
-    alert('Отправка учителю будет подключена позже');
+    alert("Отправка учителю будет подключена позже");
   }
 
   return (
     <main className="h-screen bg-zinc-950 text-white flex flex-col overflow-hidden">
-
       {/* HEADER */}
 
       <header className="h-14 shrink-0 border-b border-zinc-800 flex items-center justify-between px-3 md:px-4 gap-2">
-
         {/* Logo */}
 
-        <div className="font-semibold whitespace-nowrap">
-          Code Editor
-        </div>
+        <div className="font-semibold whitespace-nowrap">Code Editor</div>
 
         {/* Actions */}
 
         <div className="flex items-center gap-1.5">
-
-          {/* Run */}
-
+          {/* Preview */}
           <button
-            onClick={runCode}
-            className="rounded-lg bg-indigo-600 px-3 py-2 text-sm hover:bg-indigo-500"
-          >
-            ▶ <span className="hidden sm:inline">Run</span>
-          </button>
-
-          {/* Preview */}<button
             onClick={openPreviewWindow}
             className="rounded-lg bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700"
             title="Open preview"
@@ -213,7 +211,7 @@ export default function Home() {
             onClick={() => setShowPreview((prev) => !prev)}
             className="rounded-lg bg-zinc-800 px-3 py-2 text-sm hover:bg-zinc-700 md:hidden"
           >
-            {showPreview ? '⌨ Editor' : '👁 Preview'}
+            {showPreview ? "⌨ Editor" : "👁 Preview"}
           </button>
 
           {/* Download */}
@@ -235,27 +233,29 @@ export default function Home() {
           >
             ↑ <span className="hidden md:inline">Send</span>
           </button>
-
         </div>
       </header>
 
       {/* FILE TABS */}
 
       <div className="h-11 shrink-0 border-b border-zinc-800 flex items-center overflow-x-auto">
-
         {(Object.keys(fileInfo) as FileName[]).map((file) => {
           const active = activeFile === file;
 
           return (
             <button
               key={file}
-              onClick={() => { setActiveFile(file); setShowPreview(false) }}
+              onClick={() => {
+                setActiveFile(file);
+                setShowPreview(false);
+              }}
               className={`
                 h-full px-5 text-sm border-r border-zinc-800
                 transition
-                ${active
-                  ? 'bg-zinc-800 text-white'
-                  : 'text-zinc-400 hover:bg-zinc-900'
+                ${
+                  active
+                    ? "bg-zinc-800 text-white"
+                    : "text-zinc-400 hover:bg-zinc-900"
                 }
               `}
             >
@@ -263,13 +263,11 @@ export default function Home() {
             </button>
           );
         })}
-
       </div>
 
       {/* MAIN */}
 
       <div className="flex-1 min-h-0 flex flex-col md:flex-row">
-
         {/* EDITOR */}
 
         <div
@@ -277,14 +275,21 @@ export default function Home() {
             min-h-0
             w-full md:w-1/2
             h-full
-            ${showPreview ? 'hidden md:block' : 'block'}
+            ${showPreview ? "hidden md:block" : "block"} 
           `}
         >
+          <div
+            className="fixed left-0 right-0 z-50 bg-zinc-900"
+            style={{ bottom: keyboardHeight }}
+          >
+            <QuickKeys editor={editor} />
+          </div>
           <CodeEditor
             key={activeFile}
             language={currentFile.language}
             value={files[activeFile]}
             onChange={updateCode}
+            onMount={handleEditorDidMount}
           />
         </div>
 
@@ -295,84 +300,51 @@ export default function Home() {
             min-h-0
             w-full md:w-1/2
             h-full
-            ${showPreview
-              ? 'block'
-              : 'hidden md:flex'
-            }
+            ${showPreview ? "block" : "hidden md:flex"}
             flex-col
             border-l border-zinc-800
           `}
         >
-
           {/* Preview */}
 
           <div className="flex-1 min-h-0">
-
-
             <Preview
-            key={activeFile + "1"}
+              key={activeFile + "1"}
               html={files.html}
               css={files.css}
               js={files.js}
             />
-
-            {/*             
-            (
-            <div className="h-[85vh] flex items-center justify-center bg-zinc-900 text-zinc-500">
-
-              <div className="text-center">
-
-                <div className="text-3xl mb-2">
-                  ▶
-                </div>
-
-                <p>
-                  Press Run to see the result
-                </p>
-
-              </div>
-
-            </div>
-            )} */}
-
           </div>
 
           {/* CONSOLE BUTTON */}
 
-          <div className={`shrink-0 border-t border-zinc-800 bg-zinc-950 transition-all ${showConsole ? "h-40" : "h-9"}`}>
-
+          <div
+            className={`shrink-0 border-t border-zinc-800 bg-zinc-950 transition-all ${showConsole ? "h-40" : "h-9"}`}
+          >
             <button
-              onClick={() =>
-                setShowConsole((prev) => !prev)
-              }
+              onClick={() => setShowConsole((prev) => !prev)}
               className="w-full h-9 px-3 flex items-center justify-between text-xs text-zinc-400 hover:text-white hover:bg-zinc-900"
             >
               <span>
                 Console
-                {consoleMessages.length > 0 &&
-                  (` ${consoleMessages.length}`)}
+                {consoleMessages.length > 0 && ` ${consoleMessages.length}`}
               </span>
 
-              <span>
-                {showConsole ? '⌄' : '⌃'}
-              </span>
-            </button>{showConsole && (
-              <div className={`h-[calc(100%-2.25rem)] border-t border-zinc-800 ${showConsole ? "block" : "hidden"}`}>
+              <span>{showConsole ? "⌄" : "⌃"}</span>
+            </button>
+            {showConsole && (
+              <div
+                className={`h-[calc(100%-2.25rem)] border-t border-zinc-800 ${showConsole ? "block" : "hidden"}`}
+              >
                 <Console
                   messages={consoleMessages}
-                  onClear={() =>
-                    setConsoleMessages([])
-                  }
+                  onClear={() => setConsoleMessages([])}
                 />
               </div>
             )}
-
           </div>
-
         </div>
-
       </div>
-
     </main>
   );
 }
